@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Decibel Meter</title>
+    <script>
+        let audioContext;
+        let meter;
+
+        function startMeter() {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(function(stream) {
+                    const mediaStreamSource = audioContext.createMediaStreamSource(stream);
+                    meter = createMeter();
+                    mediaStreamSource.connect(meter);
+                    meter.connect(audioContext.destination);
+                    updateMeter();
+                });
+        }
+
+        function createMeter() {
+            const meter = audioContext.createAnalyser();
+            meter.fftSize = 2048;
+            return meter;
+        }
+
+        function updateMeter() {
+            const data = new Uint8Array(meter.frequencyBinCount);
+            meter.getByteFrequencyData(data);
+            const sum = data.reduce((a, b) => a + b);
+            const average = sum / data.length;
+            document.getElementById('decibel').innerText = `Decibel: ${Math.round(average)}`;
+            requestAnimationFrame(updateMeter);
+        }
+    </script>
+</head>
+<body>
+    <h1>Decibel Meter</h1>
+    <button onclick="startMeter()">Start Measuring</button>
+    <h2 id="decibel">Decibel: 0</h2>
+</body>
+</html>
