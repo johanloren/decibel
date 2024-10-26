@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Decibel Meter</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
+        h1 { color: #333; }
+        #decibel { font-size: 2em; margin: 20px; color: #4CAF50; }
+        button { padding: 10px 20px; font-size: 1em; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Decibel Meter</h1>
+    <button onclick="startMeter()">Start Measuring</button>
+    <h2 id="decibel">Decibel: 0</h2>
+    
+    <script>
+        let audioContext;
+        let meter;
+
+        function startMeter() {
+            // Kontrollera om webbläsaren stöder AudioContext
+            if (!window.AudioContext && !window.webkitAudioContext) {
+                alert("Tyvärr stöder din webbläsare inte ljudinspelning.");
+                return;
+            }
+
+            // Skapa ett AudioContext-objekt
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+            // Begär mikrofonåtkomst
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(function(stream) {
+                    // Anslut mikrofonen till AudioContext
+                    const mediaStreamSource = audioContext.createMediaStreamSource(stream);
+                    meter = createMeter();
+                    mediaStreamSource.connect(meter);
+
+                    // Starta uppdateringsfunktionen
+                    updateMeter();
+                })
+                .catch(function(err) {
+                    alert("Det gick inte att komma åt mikrofonen: " + err);
+                });
+        }
+
+        function createMeter() {
+            // Skapa en AnalyserNode för att mäta ljudnivåer
+            const analyser = audioContext.createAnalyser();
+            analyser.fftSize = 256; // Snabb Fourier-transformstorlek
+            return analyser;
+        }
+
+        function updateMeter() {
+            // Samla in och beräkna ljudnivåer
+            const dataArray = new Uint8Array(meter.frequencyBinCount);
+            meter.getByteFrequencyData(dataArray);
+            const avg = dataArray.reduce((a, b) => a + b) / dataArray.length;
+
+            // Uppdatera decibelvärdet på skärmen
+            document.getElementById('decibel').innerText = `Decibel: ${Math.round(avg)}`;
+
+            // Uppdatera kontinuerligt
+            requestAnimationFrame(updateMeter);
+        }
+    </script>
+</body>
+</html>
